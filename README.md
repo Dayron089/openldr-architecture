@@ -237,6 +237,7 @@ OpenLDR закрывает это одной точкой входа: **есте
 
 - **[foreldr-architecture](https://github.com/Dayron089/foreldr-architecture)** — архитектура самого продукта FORELDR: 12-стадийный ELS-пайплайн, BER-память на pgvector + RRF, multi-provider LLM-роутинг с prompt caching, layered prompt engineering, схема БД с денормализацией.
 - **[openldr-architecture](https://github.com/Dayron089/openldr-architecture)** *(вы здесь)* — Telegram ops-агент для FORELDR.
+- **[market-ldr-showcase](https://github.com/Dayron089/market-ldr-showcase)** — автономный AI-маркетолог для FORELDR на OpenClaw + Grok: TikTok-сценарии под 6 сегментов, Reddit pain mining, конкурентный анализ, git-as-memory для запоминания между перезапусками.
 
 ---
 
