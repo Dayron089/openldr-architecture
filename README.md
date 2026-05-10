@@ -228,3 +228,18 @@ FORELDR работает на стеке из 6 сервисов (Supabase, Redi
 OpenLDR закрывает это одной точкой входа: **естественный язык в Telegram → реальные данные из прода**. Спросил "какие косты у дорогих юзеров за неделю" — бот сходил в админ-API, дёрнул `ldr_costs_users`, отфильтровал, ответил с разбивкой. Спросил "что в логах за последний час" — `railway_logs filter=error`, traceback в чат. Утром приходит дайджест из cron, по красным линиям — авто-алерт. Всё на тех же цифрах, что в дашбордах, просто через Grok и без открывания вкладок.
 
 Стоимость: ~$5/мес на Railway Hobby + ~$1-2/мес на Grok-вызовы.
+
+---
+
+## Связанные репозитории
+
+Часть портфолио из нескольких репозиториев вокруг FORELDR:
+
+- **[foreldr-architecture](https://github.com/Dayron089/foreldr-architecture)** — архитектура самого продукта FORELDR: 12-стадийный ELS-пайплайн, BER-память на pgvector + RRF, multi-provider LLM-роутинг с prompt caching, layered prompt engineering, схема БД с денормализацией.
+- **[openldr-architecture](https://github.com/Dayron089/openldr-architecture)** *(вы здесь)* — Telegram ops-агент для FORELDR.
+
+---
+
+## Об авторе
+
+**Dmitry Pelikh** — founder & engineer of FORELDR.
