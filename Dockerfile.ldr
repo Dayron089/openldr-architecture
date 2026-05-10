@@ -1,0 +1,42 @@
+# LDR Admin Bot — OpenClaw (pre-built image) + Python CLI tools
+
+FROM ghcr.io/openclaw/openclaw:latest
+
+USER root
+
+# Install Python for CLI tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Setup Python tools
+COPY ldr-tools/ /app/ldr-tools/
+RUN python3 -m venv /app/ldr-tools/.venv && \
+    /app/ldr-tools/.venv/bin/pip install --no-cache-dir -r /app/ldr-tools/requirements.txt
+
+# OpenClaw config and workspace (includes skills)
+RUN mkdir -p /home/node/.openclaw/workspace
+COPY openclaw.json /home/node/.openclaw/openclaw.json
+COPY workspace/ /home/node/.openclaw/workspace/
+
+# Skills also need to be in /app/skills/ (where OpenClaw looks by default)
+COPY workspace/skills/ /app/skills/
+
+# Pre-seed cron jobs (morning digest + health alerts)
+RUN mkdir -p /home/node/.openclaw/cron
+COPY cron/jobs.json /home/node/.openclaw/cron/jobs.json
+
+# Fix permissions
+RUN chown -R node:node /home/node/.openclaw /app/ldr-tools /app/skills
+
+ENV PATH="/app/ldr-tools/.venv/bin:${PATH}"
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1536"
+
+USER node
+
+HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["node", "--max-old-space-size=1536", "openclaw.mjs", "gateway", "--bind", "lan", "--port", "18789", "--allow-unconfigured"]

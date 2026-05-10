@@ -1,0 +1,76 @@
+{
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "xai": {
+        "baseUrl": "https://api.x.ai/v1",
+        "apiKey": "${XAI_API_KEY}",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "grok-4-1-fast-non-reasoning",
+            "name": "Grok 4.1 Fast",
+            "input": ["text"],
+            "contextWindow": 131072,
+            "maxTokens": 16384
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "xai/grok-4-1-fast-non-reasoning"
+      },
+      "models": {
+        "xai/grok-4-1-fast-non-reasoning": {
+          "params": {
+            "temperature": 0.3
+          }
+        }
+      },
+      "workspace": "/home/node/.openclaw/workspace"
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "dmPolicy": "allowlist",
+      "allowFrom": ["${ADMIN_USER_ID}"],
+      "capabilities": {
+        "inlineButtons": "all"
+      }
+    }
+  },
+  "cron": {
+    "enabled": true
+  },
+  "hooks": {
+    "enabled": true,
+    "token": "${WEBHOOK_SECRET}",
+    "path": "/hooks"
+  },
+  "tools": {
+    "exec": {
+      "host": "gateway",
+      "security": "full",
+      "ask": "off",
+      "pathPrepend": ["/app/ldr-tools/.venv/bin"]
+    },
+    "media": {
+      "audio": {
+        "enabled": true,
+        "language": "ru",
+        "echoTranscript": true,
+        "echoFormat": "'{transcript}'"
+      }
+    }
+  },
+  "gateway": {
+    "controlUi": {
+      "enabled": false
+    }
+  }
+}

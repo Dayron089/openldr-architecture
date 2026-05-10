@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.ldr"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+numReplicas = 1

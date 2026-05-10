@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "ldr-morning-digest",
+      "name": "LDR Morning Digest",
+      "enabled": true,
+      "createdAtMs": 1741334400000,
+      "updatedAtMs": 1741334400000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 22 * * *",
+        "tz": "UTC"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Утренний дайджест для Димы.\n\nВызови через exec:\n1. ldr_kpi_fast -- основные KPI\n2. ldr_business_alerts -- алерты\n3. ldr_financial_balances -- остатки на AI аккаунтах\n4. ldr_analytics '{\"days\":2}' -- для сравнения с вчера\n\nФормат ответа (без Markdown!):\n\nDAU: [число] ([+-delta]% vs вчера)\nПодписки: [N] plus, [N] premium\nRevenue вчера: $[сумма]\nCosts вчера: $[сумма] (маржа [N]%)\n[Если есть новые платящие: Новые: email (tier)]\n[Если есть алерты: Алерты: краткое описание]\n[Если баланс AI < $10: Балансы: xAI $X, DeepSeek $Y, OR $Z]\n\nПравила:\n- Если всё штатно -- не больше 5 строк\n- Если есть аномалия (delta >25%, баланс < $5) -- опиши кратко\n- Без рекомендаций. Факты и числа\n- Никакого Markdown"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "telegram",
+        "to": "864735838",
+        "bestEffort": true
+      },
+      "state": {}
+    },
+    {
+      "id": "ldr-smart-monitor",
+      "name": "LDR Smart Monitor",
+      "enabled": true,
+      "createdAtMs": 1741334400000,
+      "updatedAtMs": 1741334400000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/30 * * * *"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Ты -- LDR Smart Monitor. Проверь систему через exec:\n1. ldr_system_health -- статус провайдеров и сервисов\n2. ldr_business_alerts -- аномалии, критичные алерты\n\nПРАВИЛА ДИАГНОСТИКИ:\n- Если провайдер DOWN -- проверь railway_logs backend filter=error (через exec) прежде чем алертить. Может быть транзиент\n- Если ошибки массовые (>3 за 30 мин) -- вызови ldr_send_alert через exec с фиксированным текстом\n- Если единичная ошибка -- НЕ алерть, просто запомни\n\nКРАСНЫЕ ЛИНИИ (алерт через exec ldr_send_alert):\n- LLM провайдер полностью DOWN (не транзиент)\n- Error rate > 5%\n- Backend health check fail\n- Redis connection refused (стабильно)\n- ВСЕ cron задачи пропущены\n\nНЕ АЛЕРТИТЬ:\n- DAU падение/рост -- Дима сам спросит\n- Новые платящие юзеры -- уходит в утренний дайджест\n- Единичные 503 от xAI (fallback работает)\n- Транзиентные Supabase ошибки\n\nЕсли ВСЁ в норме -- ответь 'OK'\nЕсли ldr_send_alert вернул SKIPPED -- ответь 'OK (deduped)'\nЕсли проблема устранилась -- вызови через exec ldr_resolve_alert с тем же текстом алерта"
+      },
+      "delivery": {
+        "mode": "none"
+      },
+      "state": {}
+    }
+  ]
+}
