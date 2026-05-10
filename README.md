@@ -4,6 +4,21 @@ Telegram бот-напарник, который следит за продак�
 
 Построен на [OpenClaw](https://github.com/openclaw/openclaw) (open-source AI gateway) с **Grok 4.1 Fast** в качестве мозга и **30 Python CLI tools** для доступа к Supabase, Railway и метрикам.
 
+> **Главное:** все цифры в ответах — **живые данные из прода**. Бот не пересказывает закэшированные дашборды, а на каждый запрос идёт в реальные источники: админ-API FORELDR, прямые SQL-запросы в Supabase, Railway API за логами, балансы у AI-провайдеров. Та же DAU, что в админке. Та же выручка, что в `gift_purchases` / `subscription_transactions`. Те же ошибки, что в Sentry. Просто доступно в Telegram за 2 секунды и с мнением агента сверху.
+
+## Откуда данные
+
+| Источник | Что оттуда | Tools |
+|----------|-----------|-------|
+| **Админ-API FORELDR** (`/api/v1/admin/*`) | DAU, KPI, выручка, costs, retention, моderation, character metrics, unit economics, trust funnel, активные сессии | `ldr_overview`, `ldr_kpi_fast`, `ldr_revenue`, `ldr_costs`, `ldr_analytics`, `ldr_retention_cohorts`, `ldr_unit_economics` ... (≈20 tools) |
+| **Supabase прямой SQL** | Любые произвольные выборки по 32 whitelisted-таблицам — юзеры, сообщения, BER факты, подписки, подарки, stories, violations | `supabase_query`, `supabase_count`, `supabase_update`, `supabase_delete`, `supabase_insert` |
+| **Railway API** | Build / deploy логи backend и bot, фильтр по тексту/error code | `railway_logs` |
+| **Cron-задачи** (внутри OpenClaw) | Утренний дайджест 22:00 UTC + Smart Monitor каждые 30 мин — сами собирают данные через те же tools | `cron/jobs.json` |
+| **AI-провайдеры** (xAI, DeepSeek, OpenRouter, fal.ai) | Балансы аккаунтов в реальном времени | `ldr_financial_balances` |
+| **Backend Alert Engine** | Активные алерты Alert Engine (error rate, cron health, Redis, BER, LLM провайдеры) | `ldr_alerts`, `ldr_business_alerts` |
+
+Никаких моков, заглушек или закэшированных снапшотов. Каждый ответ = свежий запрос в источник истины.
+
 ---
 
 ## Что умеет
@@ -177,8 +192,39 @@ Telegram форматирование без Markdown (звёздочки и х�
 
 ---
 
+## Скриншоты
+
+### Технический разбор + per-user таблица расходов
+![](screenshots/00-func.jpg)
+
+Диалог про устройство costs: уточнение "генерация + brain decision?", per-user таблица расходов за вчера (LLM + media + calls + msg). Видно, что агент **честно говорит когда у него нет нужного tool** ("Нет прямого инструмента для детального списка LLM вызовов по user/дата") — не фантазирует, а признаёт границы.
+
+### Утренний дайджест + автоматические алерты
+![](screenshots/01-daily-digest-alerts.jpg)
+
+Cron `ldr-morning-digest` (каждый день в 22:00 UTC) — DAU, подписки, revenue, costs, маржа, балансы AI-провайдеров с пометкой критичных. Сверху — алерт от `ldr-smart-monitor` про `/api/system-health` 500 и `LLM FALLBACK` (xAI Direct → OpenRouter, error 500) с user_id и character_id для контекста.
+
+### Backend error с полным traceback
+![](screenshots/02-error-traceback.jpg)
+
+Smart Monitor поймал `Exception: parameter 'request' must be an instance of starlette.requests.Request` на `POST /api/v1/admin/login` — слетела сигнатура slowapi-декоратора. Полный stack trace прямо в Telegram, не нужно лезть в Sentry / Railway logs.
+
+### Q&A по балансам и подпискам
+![](screenshots/03-balances-subs.jpg)
+
+"Что по балансам" → разбивка по всем 5 AI-провайдерам с предупреждениями ⚠️ на критично-низких. Follow-up "По подпискам че там? Именно railway когда закончится?" → MRR, 30d revenue с разбивкой подписки/подарки + дата окончания Railway Hobby. Один контекст, два запроса, ноль лишних вопросов.
+
+### Свободный диалог + мнение агента
+![](screenshots/04-system-opinion.jpg)
+
+"Че как дела?" → "Всё ок". "Ну вообще по системе мнения" → метрики + **вывод**: "тестовая фаза, трафик минимальный но растёт. Costs низкие, infra чистая. Масштабить acquisition когда ready". Это и есть `SOUL.md` в действии — бот не зачитывает JSON, а думает над данными.
+
+---
+
 ## Зачем
 
-FORELDR работает на стеке из 6 сервисов (Supabase, Redis, xAI, DeepSeek, OpenRouter, fal.ai) + Railway backend + iOS app + PWA. Открывать дашборды каждые полчаса чтобы понять что в порядке — долго и неэффективно. Бот закрывает 90% операционных вопросов в Telegram за 2-3 секунды на запрос, и сам алертит когда что-то падает.
+FORELDR работает на стеке из 6 сервисов (Supabase, Redis, xAI, DeepSeek, OpenRouter, fal.ai) + Railway backend + Next.js PWA. Метрики живут в админке, ошибки в Railway / Sentry, балансы у каждого провайдера на своём дашборде. Открывать всё это руками каждые полчаса — долго и тупо.
+
+OpenLDR закрывает это одной точкой входа: **естественный язык в Telegram → реальные данные из прода**. Спросил "какие косты у дорогих юзеров за неделю" — бот сходил в админ-API, дёрнул `ldr_costs_users`, отфильтровал, ответил с разбивкой. Спросил "что в логах за последний час" — `railway_logs filter=error`, traceback в чат. Утром приходит дайджест из cron, по красным линиям — авто-алерт. Всё на тех же цифрах, что в дашбордах, просто через Grok и без открывания вкладок.
 
 Стоимость: ~$5/мес на Railway Hobby + ~$1-2/мес на Grok-вызовы.
